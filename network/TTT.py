@@ -237,7 +237,7 @@ def deserializeMatch(packet_list:list[bytes]) -> Data:
         
         data = ""
         for i in range(FIRST_DATA, MIN_SIZE + decodedData.size) :
-            data += packet_list[i].encode()
+            data += chr(packet_list[i])
             
         decodedData.data = data
         
