@@ -1,4 +1,4 @@
-from model.player import Player
+from player import Player
 
 class Board :
     def __init__(self) -> None:
@@ -15,11 +15,6 @@ class Board :
         
     def available(self, i:int, j:int) -> bool:
         return True if self.board[i][j] == None else False
-    
-    def reset(self) -> None:
-        for i in range(len(self.board)) :
-            for j in range(len(self.board[i])) :
-                self.board[i][j] = None
     
     def getCopyBoard(self) -> list[list[Player]]:
         return self.board.copy()

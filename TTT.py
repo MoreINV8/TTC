@@ -97,14 +97,16 @@ def serializeMatch(dataObj:Data) -> bytes:
         data = "".encode()
         
     if dataObj.option == MATCH_REP :
-        
-        if not checkValidData(dataObj=dataObj) or not isinstance(dataObj.data, str) :
+        if not dataObj.data or not isinstance(dataObj.data, tuple) or len(dataObj.data[0]) + len(dataObj.data[1])  != dataObj.size:
             return None
         
         opt_header = pack("B", MATCH_REP)
         size_header = pack("B", dataObj.size)
         
-        data = dataObj.data.encode()
+        data = dataObj.data[0].encode()
+        data += dataObj.data[1].encode()
+        
+        # data = (client mark, opponent name)
         
     return act_header + opt_header + size_header + data
         
@@ -128,10 +130,15 @@ def serializePlay(dataObj:Data) -> bytes:
         
     if dataObj.option == PLAY_ERR :
         
-        opt_header = pack("B", PLAY_ERR)
-        size_header = pack("B", 0)
+        if not checkValidData(dataObj=dataObj) :
+            return None
+        if not isinstance(dataObj.data, str) or len(dataObj.data) > MAX_SIZE :
+            return None
         
-        data = "".encode()
+        opt_header = pack("B", PLAY_ERR)
+        size_header = pack("B", dataObj.size)
+        
+        data = dataObj.data.encode()
         
     if dataObj.option == PLAY_REP :
         
@@ -153,15 +160,19 @@ def serializePlay(dataObj:Data) -> bytes:
 def serializeReport(dataObj:Data) -> bytes:
     act_header = pack("B", ACT_REPORT)
     
-    if not checkValidData(dataObj=dataObj) :
-        return None
-    if not isinstance(dataObj.data, int) or dataObj.size != 1 :
+    if not dataObj.data or not isinstance(dataObj.data, tuple) or dataObj.size != 1 + len(dataObj.data[0]) + len(dataObj.data[2]):
         return None
     
     opt_header = pack("B", UNDEFINED)
-    size_header = pack("B", dataObj.size)
+    size_header = pack("B", 1 + len(dataObj.data[0]) + len(dataObj.data[2]))
     
-    data = pack("B", dataObj.data)
+    data = "".encode()
+    for i in dataObj.data[0] :
+        data += i.encode()
+    
+    data += pack("B", dataObj.data[1]) + dataObj.data[2].encode()
+    
+    # data = (final board, total win, result)
     
     return act_header + opt_header + size_header + data
 
@@ -226,33 +237,37 @@ def deserializeMatch(packet_list:list[bytes]) -> Data:
     if packet_list[HEADER_OPT] not in MATCH :
         return None
     
+    
     if packet_list[HEADER_OPT] == MATCH_REQ :
         decodedData.option = MATCH_REQ
         
     if packet_list[HEADER_OPT] == MATCH_REP :
-        decodedData.option = MATCH_REQ
+        decodedData.option = MATCH_REP
         
         if not checkByteData(packet_list=packet_list) :
             return None
         
-        data = ""
-        for i in range(FIRST_DATA, MIN_SIZE + decodedData.size) :
-            data += chr(packet_list[i])
+        mark = chr(packet_list[FIRST_DATA])
+        name = ""
+        for i in range(FIRST_DATA + 1, MIN_SIZE + decodedData.size) :
+            name += chr(packet_list[i])
             
-        decodedData.data = data
+        decodedData.data = (mark, name)
         
     return decodedData
         
 def deserializePlay(packet_list:list[bytes]) -> Data:
     decodedData = Data()
+    print(packet_list)
     
     decodedData.action = ACT_PLAY
     decodedData.size = len(packet_list) - MIN_SIZE
     
-    if packet_list[HEADER_OPT].option not in PLAY :
+    if packet_list[HEADER_OPT] not in PLAY :
         return None
     
-    if packet_list[HEADER_OPT].option == PLAY_REQ :
+    if packet_list[HEADER_OPT] == PLAY_REQ :
+        
         decodedData.option = PLAY_REQ
         
         if not checkByteData(packet_list=packet_list) :
@@ -265,10 +280,21 @@ def deserializePlay(packet_list:list[bytes]) -> Data:
         
         decodedData.data = (x, y)
         
-    if packet_list[HEADER_OPT].option == PLAY_ERR :
+    if packet_list[HEADER_OPT] == PLAY_ERR :
         decodedData.option = PLAY_ERR
         
-    if packet_list[HEADER_OPT].option == PLAY_REP :
+        if not checkByteData(packet_list=packet_list) :
+            return None
+        
+        decodedData.size = packet_list[HEADER_SIZE]
+        
+        data = ""
+        for i in range(FIRST_DATA, MIN_SIZE + decodedData.size) :
+            data += chr(packet_list[i])
+            
+        decodedData.data = data
+        
+    if packet_list[HEADER_OPT] == PLAY_REP :
         decodedData.option = PLAY_REP
         
         if not checkByteData(packet_list=packet_list) :
@@ -276,7 +302,7 @@ def deserializePlay(packet_list:list[bytes]) -> Data:
         
         data = []
         for i in range(FIRST_DATA, MIN_SIZE + decodedData.size) :
-            data.append(packet_list[i])
+            data.append(chr(packet_list[i]))
             
         decodedData.data = data
         
@@ -291,10 +317,20 @@ def deserializeReport(packet_list:list[bytes]) -> Data:
     
     if not checkByteData(packet_list=packet_list) :
         return None
-    if decodedData.size != 1 :
-        return None
     
-    decodedData.data = packet_list[FIRST_DATA]
+    board = ""
+    for i in range(FIRST_DATA, FIRST_DATA + 9) :
+        board += chr(packet_list[i])
+        
+    score = packet_list[FIRST_DATA + 9]
+    
+    result = ""
+    for i in range(FIRST_DATA + 10, len(packet_list)) :
+        result += chr(packet_list[i])
+        
+    decodedData.data = (board, score, result)
+    
+    return decodedData
 
 def deserializeFinish(packet_list:list[bytes]) -> Data:
     decodedData = Data()
