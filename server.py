@@ -30,7 +30,7 @@ def clientHandle(connection, address):
     
     connected = True
     while connected:
-        # try:
+        try:
             bin_msg = connection.recv(MAX_SIZE)
             if bin_msg:
                 msg = deserialize(bin_msg)
@@ -66,9 +66,9 @@ def clientHandle(connection, address):
                         player_data.pop(address)
                         connected = False
 
-        # except Exception as e:
-        #     print(f"[ERROR] {e}")
-        #     connected = False
+        except Exception as e:
+            print(f"[ERROR] {e}")
+            connected = False
 
     connection.close()
     print(f"[DISCONNECTED] {address} disconnected")
@@ -110,8 +110,6 @@ def playHandle(addr, x, y):
     game:GameController = matching_play[addr]
     
     request_player = game.getPlayer(addr)
-    
-    print(game.turn)
     
     if game.checkTurn(request_player) :
         canInsert = game.select(x, y)
@@ -195,13 +193,13 @@ def endHandle(game:GameController):
         matching_play.pop(player.port)
 
 def send(address, bin_data):
-    # try:
+    try:
         conn = player_data[address]["connection"]
         conn.sendall(bin_data)
-    # except KeyError:
-    #     print(f"[ERROR] No connection found for {address}")
-    # except Exception as e:
-    #     print(f"[ERROR] {e}")
+    except KeyError:
+        print(f"[ERROR] No connection found for {address}")
+    except Exception as e:
+        print(f"[ERROR] {e}")
 
 print("[STARTING] Server is starting...")
 listen()

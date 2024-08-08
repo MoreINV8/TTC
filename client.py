@@ -66,10 +66,11 @@ def requestFinish():
     client.close()
 
 def readReply():
-        global listening
-        global insertTurn
-        global playing
-    # try:
+    global listening
+    global insertTurn
+    global playing
+    
+    try:
         bin_data = client.recv(MAX_SIZE)
         if bin_data:
             data = deserialize(bin_data)
@@ -87,6 +88,8 @@ def readReply():
                             listening = False
                             
                         printBoard([" " for i in range(9)])
+                        
+                        print("Your turn to insert" if insertTurn else "Wait for opponent")   
                     
             if data.action == ACT_PLAY:
                 if data.option == PLAY_REP:
@@ -94,7 +97,7 @@ def readReply():
                     printBoard(data.data)
                     
                     insertTurn = not insertTurn
-                    print(insertTurn)
+                    print("Your turn to insert" if insertTurn else "Wait for opponent")
                     
                     if insertTurn :
                         listening = False
@@ -106,7 +109,6 @@ def readReply():
                         
                 if data.option == PLAY_ERR:
                     print(f"[ERROR]: {data.data}")
-                    # code for re enter
                 
                 return data
             
@@ -117,7 +119,6 @@ def readReply():
                 
                 printBoard(board)
                 
-                print()
                 print(f"[RESULT] You {status}, you have total win {score}")
                 
                 playing = False
@@ -126,9 +127,9 @@ def readReply():
                     
                         
         
-    # except Exception as e:
-    #     print(f"[ERROR] {e}")
-    #     return None
+    except Exception as e:
+        print(f"[ERROR] {e}")
+        return None
     
 def printBoard(board):
     for i in range(len(board)):
@@ -136,6 +137,7 @@ def printBoard(board):
             print()
         print(f"[{board[i]}]", end="")
     
+    print()
     print()
     
 def listen():

@@ -258,7 +258,6 @@ def deserializeMatch(packet_list:list[bytes]) -> Data:
         
 def deserializePlay(packet_list:list[bytes]) -> Data:
     decodedData = Data()
-    print(packet_list)
     
     decodedData.action = ACT_PLAY
     decodedData.size = len(packet_list) - MIN_SIZE
